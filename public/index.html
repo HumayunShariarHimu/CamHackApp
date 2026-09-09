@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>CamHackApp</title>
+    <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">
+            <span class="brand-icon">⌘</span>
+            <span class="brand-text">CamHack</span>
+            <span class="brand-version">v2.0</span>
+        </div>
+        <div class="nav-links">
+            <button class="nav-btn active" data-tab="camera">Camera</button>
+            <button class="nav-btn" data-tab="gallery">Gallery</button>
+        </div>
+        <div class="nav-credit">
+            <span>by Humayun Shariar Himu</span>
+        </div>
+    </nav>
+
+    <main class="app-container">
+        <section id="camera-tab" class="tab-content active">
+            <div class="camera-wrapper">
+                <div class="video-container" id="videoContainer">
+                    <video id="video" autoplay playsinline muted></video>
+                    <canvas id="canvas" style="display:none;"></canvas>
+                    <div class="scan-line"></div>
+                    <div class="corner-tl"></div>
+                    <div class="corner-tr"></div>
+                    <div class="corner-bl"></div>
+                    <div class="corner-br"></div>
+                    <div class="camera-overlay" id="cameraOverlay">
+                        <span class="overlay-text">INITIALIZING</span>
+                        <span class="overlay-dots"></span>
+                    </div>
+                    <div class="countdown-overlay" id="countdownOverlay" style="display:none;">
+                        <span id="countdownNumber">3</span>
+                    </div>
+                </div>
+                <div class="camera-controls">
+                    <div class="control-group">
+                        <button class="ctrl-btn primary" id="captureBtn">
+                            <span class="btn-icon">⊞</span>
+                            <span>Capture</span>
+                        </button>
+                        <button class="ctrl-btn" id="flipBtn">
+                            <span class="btn-icon">↻</span>
+                            <span>Flip</span>
+                        </button>
+                        <button class="ctrl-btn" id="effectToggleBtn">
+                            <span class="btn-icon">◈</span>
+                            <span>Effects</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="effect-panel" id="effectPanel" style="display:none;">
+                    <div class="effect-grid">
+                        <button class="effect-btn active" data-effect="none">Normal</button>
+                        <button class="effect-btn" data-effect="neon">Neon</button>
+                        <button class="effect-btn" data-effect="cyber">Cyber</button>
+                        <button class="effect-btn" data-effect="matrix">Matrix</button>
+                        <button class="effect-btn" data-effect="vapor">Vapor</button>
+                        <button class="effect-btn" data-effect="glitch">Glitch</button>
+                        <button class="effect-btn" data-effect="pixel">Pixel</button>
+                        <button class="effect-btn" data-effect="invert">Invert</button>
+                    </div>
+                </div>
+                <div class="status-bar">
+                    <span id="statusText">● READY</span>
+                    <span id="fpsCounter">FPS: 0</span>
+                </div>
+            </div>
+        </section>
+
+        <section id="gallery-tab" class="tab-content">
+            <div class="gallery-header">
+                <h2>Capture Gallery</h2>
+                <span class="gallery-count" id="galleryCount">0 items</span>
+                <button class="ctrl-btn danger" id="clearGalleryBtn">
+                    <span class="btn-icon">✕</span>
+                    <span>Clear All</span>
+                </button>
+            </div>
+            <div class="gallery-grid" id="galleryGrid">
+                <div class="gallery-empty">
+                    <span class="empty-icon">⌘</span>
+                    <p>No captures yet</p>
+                    <span class="empty-sub">Point your camera and shoot</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="app-footer">
+        <span>CamHackApp &bull; Developed by Humayun Shariar Himu &bull; Dark Neon Edition</span>
+    </footer>
+
+    <script src="/js/app.js"></script>
+</body>
+</html>
