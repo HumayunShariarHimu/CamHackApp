@@ -30,6 +30,20 @@
     let captureInProgress = false;
     let frameCount = 0;
     let lastFpsTime = performance.now();
+    const galleryStorageKey = 'camhackapp-gallery-v1';
+
+    function getLocalGallery() {
+        try {
+            return JSON.parse(localStorage.getItem(galleryStorageKey) || '[]');
+        } catch (err) {
+            console.error('Local gallery read error:', err);
+            return [];
+        }
+    }
+
+    function saveLocalGallery(images) {
+        localStorage.setItem(galleryStorageKey, JSON.stringify(images.slice(0, 20)));
+    }
 
     async function startCamera(facing = 'environment') {
         try {
@@ -200,6 +214,12 @@
         const dataUrl = captureFrame(currentEffect);
         const file = await uploadImage(dataUrl);
         if (file) {
+            const localImage = {
+                id: file.id || `local-${Date.now()}`,
+                url: dataUrl,
+                timestamp: Date.now()
+            };
+            saveLocalGallery([localImage, ...getLocalGallery()]);
             statusText.innerHTML = '✔ CAPTURED';
             setTimeout(() => statusText.innerHTML = '● LIVE', 1500);
             await loadGallery();
@@ -211,8 +231,7 @@
 
     async function loadGallery() {
         try {
-            const res = await fetch('/api/images');
-            const images = await res.json();
+            const images = getLocalGallery();
             renderGallery(images);
             galleryCount.textContent = images.length + ' items';
         } catch (err) {
@@ -277,9 +296,9 @@
 
     async function deleteImage(id) {
         try {
-            const res = await fetch(`/api/images/${id}`, { method: 'DELETE' });
-            const json = await res.json();
-            return json.success;
+            const images = getLocalGallery().filter(image => image.id !== id);
+            saveLocalGallery(images);
+            return true;
         } catch (err) {
             console.error('Delete error:', err);
             return false;
@@ -290,10 +309,7 @@
         const items = document.querySelectorAll('.gallery-item');
         if (items.length === 0) return;
         if (!confirm('Delete all captures?')) return;
-        for (const item of items) {
-            const id = item.dataset.id;
-            if (id) await deleteImage(id);
-        }
+        saveLocalGallery([]);
         await loadGallery();
     }
 
