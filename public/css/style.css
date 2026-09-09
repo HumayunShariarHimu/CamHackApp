@@ -440,3 +440,69 @@ body {
         font-size: 0.7rem;
     }
 }
+
+/* Accessible capture UI overrides */
+html, body {
+    background: #000;
+    color: #fff;
+}
+.navbar, .app-footer {
+    background: #000;
+    border-color: #222;
+}
+.nav-brand, .nav-credit, .status-bar, .gallery-header h2 {
+    color: #fff;
+    text-shadow: none;
+}
+.video-container {
+    background: #000;
+    border: 1px solid #333;
+    box-shadow: none;
+}
+.camera-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    background: rgba(0, 0, 0, 0.88);
+    z-index: 5;
+    text-align: center;
+}
+.camera-overlay .overlay-text {
+    position: static;
+    transform: none;
+    color: #fff;
+    background: transparent;
+    padding: 0;
+    text-shadow: none;
+    font-size: 1rem;
+    letter-spacing: 2px;
+}
+.permission-btn, .ctrl-btn {
+    background: #fff;
+    border: 1px solid #fff;
+    color: #000;
+    border-radius: 8px;
+    padding: 12px 22px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.2s;
+}
+.permission-btn:hover, .ctrl-btn:hover {
+    background: #e8e8e8;
+    color: #000;
+    transform: translateY(-1px);
+}
+.permission-btn:disabled, .ctrl-btn:disabled {
+    opacity: 0.55;
+    cursor: wait;
+}
+.ctrl-btn.primary, .ctrl-btn.danger, .nav-btn, .effect-btn {
+    background: #fff;
+    color: #000;
+    border-color: #fff;
+    box-shadow: none;
+}

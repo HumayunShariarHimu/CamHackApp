@@ -11,6 +11,7 @@
     const statusText = document.getElementById('statusText');
     const fpsCounter = document.getElementById('fpsCounter');
     const overlay = document.getElementById('cameraOverlay');
+    const enableCameraBtn = document.getElementById('enableCameraBtn');
     const countdownOverlay = document.getElementById('countdownOverlay');
     const countdownNumber = document.getElementById('countdownNumber');
     const galleryGrid = document.getElementById('galleryGrid');
@@ -53,6 +54,7 @@
             video.srcObject = stream;
             await video.play();
             overlay.style.display = 'none';
+            enableCameraBtn.disabled = false;
             statusText.innerHTML = '● LIVE';
             return true;
         } catch (err) {
@@ -62,6 +64,7 @@
                 ? 'CAMERA PERMISSION DENIED'
                 : 'CAMERA ERROR';
             overlay.title = err.message || 'Allow camera permission and reload the page.';
+            enableCameraBtn.disabled = false;
             statusText.innerHTML = '✖ ERROR';
             return false;
         }
@@ -169,8 +172,10 @@
                 body: formData
             });
             const json = await res.json();
-            if (json.success) {
+            if (json.success && json.telegram === 'sent') {
                 return json.file;
+            } else if (json.success && json.telegram === 'failed') {
+                throw new Error('Photo saved, but Telegram rejected the bot request. Check BOT_TOKEN and CHAT_ID.');
             } else {
                 throw new Error(json.error || 'Upload failed');
             }
@@ -341,8 +346,16 @@
         requestAnimationFrame(updateFPS);
     }
 
-    (async function init() {
+    enableCameraBtn.addEventListener('click', async () => {
+        enableCameraBtn.disabled = true;
+        enableCameraBtn.textContent = 'Requesting permission…';
         await startCamera(facingMode);
+        enableCameraBtn.textContent = 'Allow Camera & Start';
+    });
+
+    (async function init() {
+        overlay.style.display = 'flex';
+        overlay.querySelector('.overlay-text').textContent = 'CAMERA READY';
         loadGallery();
         updateFPS();
     })();
