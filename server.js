@@ -24,7 +24,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ===== Uploads dir =====
-const uploadDir = path.join(__dirname, 'uploads');
+const uploadDir = process.env.VERCEL
+    ? path.join('/tmp', 'camhackapp-uploads')
+    : path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir);
 }
@@ -140,7 +142,11 @@ app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.listen(PORT, () => {
-    console.log(`CamHackApp server running on port ${PORT}`);
-    console.log(`Telegram Bot: ${BOT_TOKEN ? '✅ Configured' : '❌ Missing'}`);
-});
+if (require.main === module && !process.env.VERCEL) {
+    app.listen(PORT, () => {
+        console.log(`CamHackApp server running on port ${PORT}`);
+        console.log(`Telegram Bot: ${BOT_TOKEN ? '✅ Configured' : '❌ Missing'}`);
+    });
+}
+
+module.exports = app;
