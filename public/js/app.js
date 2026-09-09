@@ -32,6 +32,12 @@
 
     async function startCamera(facing = 'environment') {
         try {
+            if (!window.isSecureContext) {
+                throw new Error('Camera requires HTTPS. Open the https:// production URL.');
+            }
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                throw new Error('This browser does not support camera access.');
+            }
             if (stream) {
                 stream.getTracks().forEach(t => t.stop());
             }
@@ -52,7 +58,10 @@
         } catch (err) {
             console.error('Camera error:', err);
             overlay.style.display = 'flex';
-            overlay.querySelector('.overlay-text').textContent = 'CAMERA ERROR';
+            overlay.querySelector('.overlay-text').textContent = err.name === 'NotAllowedError'
+                ? 'CAMERA PERMISSION DENIED'
+                : 'CAMERA ERROR';
+            overlay.title = err.message || 'Allow camera permission and reload the page.';
             statusText.innerHTML = '✖ ERROR';
             return false;
         }

